@@ -1,75 +1,23 @@
-const https = require('https');
+export async function handler(event) {
 
-exports.handler = async function(event, context) {
-  // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
+  const body = JSON.parse(event.body)
+  const image = body.image
+
+  // simple simulated analysis
+  const probability = Math.random()
+
+  let label = "No Damage"
+
+  if (probability > 0.5) {
+    label = "Possible Damage Detected"
   }
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+  return {
+    statusCode: 200,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      label: label,
+      damage_probability: probability
+    })
   }
-
-  try {
-    const body = JSON.parse(event.body);
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      return { statusCode: 500, body: JSON.stringify({ error: 'API key not configured' }) };
-    }
-
-    const payload = JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1000,
-      messages: body.messages
-    });
-
-    const result = await new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.anthropic.com',
-        path: '/v1/messages',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Length': Buffer.byteLength(payload)
-        }
-      };
-
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, body: data }));
-      });
-
-      req.on('error', reject);
-      req.write(payload);
-      req.end();
-    });
-
-    return {
-      statusCode: result.status,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: result.body
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: err.message })
-    };
-  }
-};
+}
