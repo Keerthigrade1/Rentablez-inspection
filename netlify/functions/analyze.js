@@ -16,7 +16,7 @@ export async function handler(event) {
         contents: [{
           parts: [
             {
-              text: "Analyze this vehicle or equipment image and identify damage such as dents, scratches, cracks. Respond briefly."
+              text: "Analyze this vehicle image and identify any visible damage like scratches, dents or cracks."
             },
             {
               inline_data: {
