@@ -1058,8 +1058,22 @@ Respond ONLY in valid JSON:
     });
     if (!resp.ok) throw new Error('Claude API error: ' + resp.status);
     const data = await resp.json();
-    const raw = data.content.map(c => c.text || '').join('');
-    return JSON.parse(raw.replace(/```json|```/g, '').trim());
+    // Netlify function returns the Anthropic response directly
+    // Handle both direct and nested response structures
+    let parsed;
+    if (data.content && Array.isArray(data.content)) {
+      // Direct Anthropic response
+      const raw = data.content.map(c => c.text || '').join('');
+      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } else if (data.body) {
+      // Wrapped response
+      const inner = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+      const raw = inner.content.map(c => c.text || '').join('');
+      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } else {
+      throw new Error('Unexpected response structure: ' + JSON.stringify(data).slice(0, 200));
+    }
+    return parsed;
   }
 
   function renderResults(rb, cl) {
