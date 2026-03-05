@@ -8,7 +8,18 @@ async function runClaude(){
 
   const data = await resp.json()
 
-  const text = data.candidates[0].content.parts[0].text
+  let text = "AI could not analyze the image."
+
+  if(
+    data &&
+    data.candidates &&
+    data.candidates.length > 0 &&
+    data.candidates[0].content &&
+    data.candidates[0].content.parts &&
+    data.candidates[0].content.parts.length > 0
+  ){
+    text = data.candidates[0].content.parts[0].text
+  }
 
   return {
     hasDamage: text.toLowerCase().includes("damage"),
