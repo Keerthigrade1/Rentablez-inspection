@@ -1057,23 +1057,20 @@ Respond ONLY in valid JSON:
       })
     });
     if (!resp.ok) throw new Error('Claude API error: ' + resp.status);
-    const data = await resp.json();
-    // Netlify function returns the Anthropic response directly
-    // Handle both direct and nested response structures
-    let parsed;
-    if (data.content && Array.isArray(data.content)) {
-      // Direct Anthropic response
-      const raw = data.content.map(c => c.text || '').join('');
-      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    } else if (data.body) {
-      // Wrapped response
-      const inner = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
-      const raw = inner.content.map(c => c.text || '').join('');
-      parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-    } else {
-      throw new Error('Unexpected response structure: ' + JSON.stringify(data).slice(0, 200));
+    // Netlify function returns body as a raw string (Anthropic's response)
+    const raw_text = await resp.text();
+    let anthropic_data;
+    try {
+      anthropic_data = JSON.parse(raw_text);
+    } catch(e) {
+      throw new Error('Could not parse response: ' + raw_text.slice(0, 200));
     }
-    return parsed;
+    // Extract text from Anthropic content array
+    if (!anthropic_data.content || !Array.isArray(anthropic_data.content)) {
+      throw new Error('Unexpected response structure: ' + JSON.stringify(anthropic_data).slice(0, 200));
+    }
+    const text = anthropic_data.content.map(c => c.text || '').join('');
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
   }
 
   function renderResults(rb, cl) {
